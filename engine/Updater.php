@@ -44,13 +44,14 @@ class Updater
     public static $api_blog_password = '';
 
     public static $changes_were_written = false;
-    
+
     private static $index_to_be_updated = false;
     private static $index_months_to_be_updated = array();
     private static $tags_to_be_updated = array();
     private static $types_to_be_updated = array();
     private static $posts_to_be_updated = array();
     private static $pages_to_be_updated = array();
+    private static $posts_scheduled = array();
         
     public static function posts_in_year_month($year, $month, $require_tag = false, $require_type = false)
     {
@@ -313,38 +314,50 @@ class Updater
         arsort($out);
         return $out;
     }
+
+    public static function check_schedule($changedfiles){
+        $ret = ($changedfiles) ? $changedfiles : array();
+        $time = time();
+        $cache_fname = self::$cache_path . '/schedule';
+        if (file_exists($cache_fname)) {
+            self::$posts_scheduled = unserialize(file_get_contents($cache_fname));
+            if(!self::$posts_scheduled) return $ret;
+        }
+        foreach(self::$posts_scheduled as $filename=>$scheduletime){
+            if(! file_exists($filename)) {
+                unset(self::$posts_scheduled[$filename]);
+            }else if($scheduletime < $time && ! isset($changedfiles[$filename])){
+                $ret[$filename] = array();
+                unset(self::$posts_scheduled[$filename]);
+            }
+        }
+
+        return $ret;
+    }
     
     public static function update_drafts()
     {
-        foreach (self::changed_files_in_directory(self::$source_path . '/drafts') as $filename => $info) {
-            self::$changes_were_written = true;
+        $checkthis = self::changed_files_in_directory(self::$source_path . '/drafts');
+        $checkthis = self::check_schedule($checkthis);
 
-            if (! file_exists($filename)) {
-                if (ends_with($filename, self::$post_extension)) {
+        foreach ($checkthis as $filename => $info) {
+            self::$changes_were_written = true;
+            if (ends_with($filename, self::$post_extension)) {
+                if (! file_exists($filename)) {
                     error_log("Deleted draft $filename");
                     $slug = substring_before(basename($filename), '.', true);
                     $html_preview_filename = self::$source_path . '/drafts/_previews/' . $slug . '.html';
                     $webroot_preview_filename = self::$dest_path . '/drafts/' . $slug;
+                    if(isset(self::$posts_scheduled[$filename])) unset(self::$posts_scheduled[$filename]);
                     if (file_exists($html_preview_filename)) safe_unlink($html_preview_filename);
                     if (file_exists($webroot_preview_filename)) safe_unlink($webroot_preview_filename);
-                }
-                continue;
-            }
-
-            if (substr($filename, -(strlen(self::$post_extension))) == self::$post_extension) {
-                if (contains($filename, '/_publish-now/')) {
-                    $post = new Post($filename, false);
-                    if($post->timestamp == null || $post->timestamp < time()){
-                        $expected_fname = $post->expected_source_filename(true);
-                        error_log("Publishing draft $filename");
-                        $dir = dirname($expected_fname);
-                        if (! file_exists($dir)) mkdir_as_parent_owner($dir, 0755, true);
-                        if (file_put_contents_as_dir_owner($expected_fname, $post->normalized_source())) safe_unlink($filename);
-                        self::post_hooks($post);
-                    }
-                }else{            
+                }else{
                     $post = new Post($filename, true);
+                    if (contains($filename, '/_publish-now/')) {
+                        $post->publish_now = true;
+                    }
                     if ($post->publish_now && ($post->timestamp == null || $post->timestamp < time())) {
+                        if(isset(self::$posts_scheduled[$filename])) unset(self::$posts_scheduled[$filename]);
                         $post = new Post($filename, false);
                         $expected_fname = $post->expected_source_filename(true);
                         error_log("Publishing draft $filename");
@@ -353,11 +366,16 @@ class Updater
                         if (file_put_contents_as_dir_owner($expected_fname, $post->normalized_source())) safe_unlink($filename);
                         self::post_hooks($post);
                     } else {
+                        if($post->publish_now && $post->timestamp != null){
+                            error_log("Scheduling post $filename");                        
+                            self::$posts_scheduled[$post->source_filename] = $post->timestamp;
+                        }
                         $post->write_permalink_page(true);
                     }
                 }
             }
-        }        
+        }
+        file_put_contents_as_dir_owner(self::$cache_path . '/schedule', serialize(self::$posts_scheduled));
     }
 
     public static function update_styles()

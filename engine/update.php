@@ -10,14 +10,14 @@ if (file_exists(LOCK_FILE) &&
     exit(1);
 }
 
-if (file_put_contents(LOCK_FILE, posix_getpid())) {
-    register_shutdown_function(
-        function() {
-            try { unlink(LOCK_FILE); } catch (Exception $e) {
-                fwrite(STDERR, "Cannot remove lock file [" . LOCK_FILE . "]: " . $e->getMessage() . "\n");
-            }
+if( file_put_contents(LOCK_FILE, posix_getpid())){
+    function closeupp(){
+        try { unlink(LOCK_FILE); } catch (Exception $e) {
+            fwrite(STDERR, "Cannot remove lock file [" . LOCK_FILE . "]: " . $e->getMessage() . "\n");
         }
-    );
+    }
+    
+    register_shutdown_function('closeupp');
 } else {
     fwrite(STDERR, "Cannot write lock file: " . LOCK_FILE . "\n");
     exit(1);

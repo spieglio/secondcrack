@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml" />
+        <link rel="alternate" type="application/rss+xml" title="RSS" href="/rss" />
         <meta name="viewport" content="width=device-width" />
         <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"/>
         <title><?= 
@@ -16,7 +16,9 @@
         <? if ($content['page-type'] != 'frontpage' && $content['page-type'] != 'page' && $content['page-type'] != 'post') { ?>
             <meta name="robots" content="noindex"/>
         <? } ?>
+        <?=( !empty($content['canonical-url']) ? '<link rel="canonical" href="'.$content['canonical-url'].'" />' : null)?>
     </head>
+    <body <?=( !empty($content['page-id']) ? 'id="'.$content['page-id'].'"' : null)?>>
     <body>
         <div id="mastheadbackground">&nbsp;</div>
         
@@ -55,31 +57,31 @@
                     </article>
                 <? } ?>
             <? } ?>
-            
-            <? if (isset($content['archives'])) { ?>
-                <nav id="archives">
-                    <h3>Archives</h3> 
-                    <div style="clear: both; font-size: 1px; line-height: 1px;">&nbsp;</div>
-                    <div style="float: left; width: 90px; text-align: right; padding-bottom: 2em;">
-                        <? $so_far = 0; $per_column = ceil(count($content['archives']) / 5); ?>
-                        <? foreach ($content['archives'] as $archive) { ?>
-                            <? if (++$so_far > $per_column) { ?>
-                                <? $so_far = 1; ?>
-                                </div>
-                                <div style="float: left; width: 90px; text-align: right;">
+            <? if (isset($content['posts'])) foreach ($content['posts'] as $post) { ?>
+                <? if (isset($content['archives'])) { ?>
+                    <nav id="archives">
+                        <h3>Archives</h3> 
+                        <div style="clear: both; font-size: 1px; line-height: 1px;">&nbsp;</div>
+                        <div style="float: left; width: 90px; text-align: right; padding-bottom: 2em;">
+                            <? $so_far = 0; $per_column = ceil(count($content['archives']) / 5); ?>
+                            <? foreach ($content['archives'] as $archive) { ?>
+                                <? if (++$so_far > $per_column) { ?>
+                                    <? $so_far = 1; ?>
+                                    </div>
+                                    <div style="float: left; width: 90px; text-align: right;">
+                                <? } ?>
+                                <a href="<?= h($archive['archives-uri']) ?>"><?= $archive['archives-month-short-name'] ?>&nbsp;<?= $archive['archives-year'] ?></a>
+                                <br/>
                             <? } ?>
-                            <a href="<?= h($archive['archives-uri']) ?>"><?= $archive['archives-month-short-name'] ?>&nbsp;<?= $archive['archives-year'] ?></a>
-                            <br/>
-                        <? } ?>
-                    </div>
-                    <div style="clear: both; font-size: 1px; line-height: 1px;">&nbsp;</div>
-                </nav>
-            <? } ?>
-            
+                        </div>
+                        <div style="clear: both; font-size: 1px; line-height: 1px;">&nbsp;</div>
+                    </nav>
+                <? } ?>
+            <? } ?>            
             <footer>
                 <p>&copy; 2006-2012 Marco Arment. All rights reserved.</p>
                 <p>
-                    <a href="/rss.xml">RSS feed</a>.
+                    <a href="/rss">RSS feed</a>.
                     Powered by <a href="http://www.marco.org/secondcrack">Second Crack</a>.
                 </p>
 

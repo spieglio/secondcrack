@@ -7,7 +7,6 @@ class Updater
 {
     public static $source_path;
     public static $dest_path;
-    public static $tag_path;
     public static $cache_path;
     public static $post_extension = '.md';
     
@@ -625,7 +624,7 @@ class Updater
             if (! strlen($tag)) continue;
             error_log("Updating tag: $tag");
             self::$changes_were_written = true;
-            if (! file_exists(self::$tag_path)) mkdir_as_parent_owner(self::$tag_path, 0755, true);
+            if (! file_exists(self::$dest_path . "/tag")) mkdir_as_parent_owner(self::$dest_path . "/tag", 0755, true);
 
             $seq_count = Post::write_index_sequence(
                 self::$dest_path . "/tag/$tag", 
@@ -678,9 +677,10 @@ class Updater
             if (! strlen($type)) continue;
             error_log("Updating type: $type");
             self::$changes_were_written = true;
+            if (! file_exists(self::$dest_path . "/type")) mkdir_as_parent_owner(self::$dest_path . "/type", 0755, true);
 
             Post::write_index(
-                self::$dest_path . "/type-$type.html", 
+                self::$dest_path . "/type/$type.html", 
                 Post::$blog_title, 
                 'type', 
                 Post::from_files(self::most_recent_post_filenames(self::$frontpage_post_limit, self::$archive_type_filter, $type)),
@@ -689,7 +689,7 @@ class Updater
             );
 
             Post::write_index(
-                self::$dest_path . "/type-$type.xml", 
+                self::$dest_path . "/type/$type.xml", 
                 Post::$blog_title, 
                 'type', 
                 Post::from_files(self::most_recent_post_filenames(self::$rss_post_limit, self::$archive_type_filter, $type)),
@@ -705,7 +705,7 @@ class Updater
                 $posts = Post::from_files(self::post_filenames_in_year_month($year, $month, self::$archive_tag_filter, $type));
                 $ts = mktime(0, 0, 0, $month, 15, $year);
                 Post::write_index(
-                    self::$dest_path . "/$year/$month/type-$type.html",
+                    self::$dest_path . "/$year/$month/type/$type.html",
                     date('F Y', $ts),
                     'type',
                     $posts,

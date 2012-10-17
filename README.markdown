@@ -1,5 +1,14 @@
 Second Crack is a basic static-file blog engine using Markdown-formatted text files as input.
 
+
+# My take on this:
+
+I am currently using secondcrack for my personal blog at [CSPIEGL.com](http://cspiegl.com). I found some rough edges and am working on some of them ([See the Issues for more information](https://github.com/cspiegl/secondcrack/issues)). If you would like to help: Please feel free to send pull requests.
+
+------------------
+
+#Original Readme from Marco below
+
 # Warning
 
 Second Crack should be considered an early alpha. Even though I've run Marco.org with it for a long time, **it's still rough and unfriendly.**

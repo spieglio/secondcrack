@@ -64,7 +64,9 @@ class Post
         $this->is_draft = ($is_draft === -1 ? (false !== strpos($source_filename, 'drafts/') || false !== strpos($source_filename, 'pages/')) : $is_draft);
         $this->timestamp = filemtime($source_filename);
 
-        $segments = preg_split( '/\R\R/',  trim(file_get_contents($source_filename)), 2);
+        $segments = explode("\n\n", trim(file_get_contents($source_filename)), 2);
+#       $segments = preg_split( '/\R\R/',  trim(file_get_contents($source_filename)), 2);
+        
         if (! isset($segments[1])) $segments[1] = '';
 
         if (count($segments) > 1) {
@@ -206,6 +208,8 @@ class Post
             'blog-title' => html_entity_decode(SmartyPants(self::$blog_title), ENT_QUOTES, 'UTF-8'),
             'blog-url' => self::$blog_url,
             'blog-description' => html_entity_decode(SmartyPants(self::$blog_description), ENT_QUOTES, 'UTF-8'),
+            'canonical-url'=>rtrim(self::$blog_url, '/') . '/' . $this->slug,
+            'page-id'=>'page-'.$this->slug,
             'page-type' => 'page',
             'archives' => array(),
             'previous_page_url' => false,
@@ -219,6 +223,9 @@ class Post
     
     public function write_permalink_page($draft = false)
     {
+
+        $base_uri = '/' . $this->year . '/' . str_pad($this->month, 2, '0', STR_PAD_LEFT) . '/' . str_pad($this->day, 2, '0', STR_PAD_LEFT);
+
         $post_data = $this->array_for_template();
         $post_data['post-is-first-on-date'] = true;
 
@@ -230,6 +237,8 @@ class Post
                 'blog-title' => html_entity_decode(SmartyPants(self::$blog_title), ENT_QUOTES, 'UTF-8'),
                 'blog-url' => self::$blog_url,
                 'blog-description' => html_entity_decode(SmartyPants(self::$blog_description), ENT_QUOTES, 'UTF-8'),
+                'canonical-url'=>rtrim(self::$blog_url, '/') . $base_uri . '/' . $this->slug,
+                'page-id'=>'post-'.$this->slug,
                 'page-type' => 'post',
                 'posts' => array($post_data),
                 'post' => $post_data,
@@ -255,12 +264,16 @@ class Post
         $posts_data = array();
         foreach ($posts as $p) $posts_data[] = $p->array_for_template();
 
+        $dest_uri = substring_after(substring_after($dest_path, '/', true), Updater::$dest_path);
+        $cdest_uri = substring_after($dest_path, Updater::$dest_path);
         $t = new Template($template);
         $t->content = array(
             'page-title' => html_entity_decode(SmartyPants($title), ENT_QUOTES, 'UTF-8'),
             'blog-title' => html_entity_decode(SmartyPants(self::$blog_title), ENT_QUOTES, 'UTF-8'),
             'blog-url' => self::$blog_url,
             'blog-description' => html_entity_decode(SmartyPants(self::$blog_description), ENT_QUOTES, 'UTF-8'),
+            'canonical-url'=>rtrim(self::$blog_url, '/') . str_replace("index","",str_replace(".html","",$cdest_uri)),
+            'page-id'=> str_replace(".html","",$dest_uri),
             'page-type' => $type,
             'posts' => $posts_data,
             'previous_page_url' => false,
@@ -280,6 +293,7 @@ class Post
         $new_dest_path = $dest_path;
         // $dest_uri = substring_after(substring_before($dest_path, '.', true), Updater::$dest_path);
         $dest_uri = substring_after(substring_after($dest_path, '/', true), Updater::$dest_path);
+        $cdest_uri = substring_after($dest_path, Updater::$dest_path);
         $total_sequences = ceil(count($posts) / $posts_per_page);
         while ($posts) {
             $sequence++;
@@ -297,6 +311,8 @@ class Post
                 'blog-title' => html_entity_decode(SmartyPants(self::$blog_title), ENT_QUOTES, 'UTF-8'),
                 'blog-url' => self::$blog_url,
                 'blog-description' => html_entity_decode(SmartyPants(self::$blog_description), ENT_QUOTES, 'UTF-8'),
+                'canonical-url'=>rtrim(self::$blog_url, '/') . str_replace("index","",str_replace(".html","",$cdest_uri)),
+                'page-id'=> str_replace(".html","",$dest_uri),
                 'page-type' => $type,
                 'posts' => $posts_data,
                 'previous_page_url' => $sequence != 1 ? ($sequence == 2 ? $dest_uri : $dest_uri . '-' . ($sequence - 1)) : false,

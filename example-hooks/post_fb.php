@@ -32,14 +32,30 @@ class FacebookCredentials
     public static $app_id       = 'YOUR APP ID';
     public static $app_secret   = 'YOUR APP SECRET';
     public static $access_token = 'YOUR ACCESS TOKEN';
+    public static $page_id      = 'me';    // Write 'me' for post to profile and write '**PAGEID**' to post to page wall (To optain the page id go to: https://graph.facebook.com/**PAGENAME**)
+}
+
+class Shortener
+{
+    public static $useShortener = true;
+    private static $serverAPIurl = 's.cspiegl.com';
+    private static $api_user = 'cspiegl';
+    private static $api_key = 'Pulu84256';
+    public static function shorten($url){
+        $s = file_get_contents('http://' . Shortener::$serverAPIurl . '/?o=' . urlencode($url) . '&API_USER=' . Shortener::$api_user . '&API_KEY=' . Shortener::$api_key);
+        return $s;
+    }
 }
 
 function construct_post_text(array $post)
 {
     $post_txt = $post['post-title'];
-    $post_url = $post['post-absolute-permalink'];
-	$post_txt .= ' - ' . $post_url;
-	    
+    $post_url = strtolower($post['post-absolute-permalink']);
+    if(Shortener::$useShortener){
+        $post_url = Shortener::shorten($post_url);
+    }
+    $post_txt .= ' - ' . $post_url;
+        
     if (isset($post['link'])) $post_txt = "\xE2\x86\x92 " . $post_txt;
     return $post_txt;
 }
@@ -57,7 +73,11 @@ function post_facebook_link_to_post(array $post)
         'access_token' => FacebookCredentials::$access_token,
         'message' => $post_text);
     
-    $res = $facebook->api('/me/feed', 'POST', $req);
+    try{
+        $res = $facebook->api('/' . FacebookCredentials::$page_id . '/feed', 'POST', $req);
+    } catch (Exception $e) {
+        error_log("Cannot post[$post_text] to Facebook: " . $e->getMessage());
+    }
 }
 
 class fb extends Hook
